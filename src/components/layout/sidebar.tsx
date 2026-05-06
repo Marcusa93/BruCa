@@ -10,7 +10,6 @@ import {
   CalendarClock,
   Calculator,
   Users,
-  Sparkles,
   Coins,
   LogOut,
   X,
@@ -33,7 +32,6 @@ const NAV: NavItem[] = [
   { href: "/tesoreria", label: "Tesorería", icon: Coins, group: "Operación" },
   { href: "/inversores", label: "Inversores", icon: Users, group: "Cartera" },
   { href: "/simulador", label: "Simulador", icon: Calculator, group: "Cartera" },
-  { href: "/asistente", label: "Asistente IA", icon: Sparkles, group: "Inteligencia" },
 ];
 
 interface SidebarProps {
@@ -80,7 +78,7 @@ export function Sidebar({ userEmail, open = false, onClose }: SidebarProps) {
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold tracking-tight text-ink">BruCa</span>
             <span className="text-[10px] uppercase tracking-[0.12em] text-ink-4">
-              Treasury System
+              Inversiones + IA
             </span>
           </div>
           <button
@@ -156,6 +154,17 @@ export function Sidebar({ userEmail, open = false, onClose }: SidebarProps) {
                 </button>
               </form>
             </div>
+          </div>
+          <div className="mt-2 text-center text-[9px] tracking-wide text-ink-4">
+            Desarrollado por{" "}
+            <a
+              href="https://digitalamenities.com"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-ink-3 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
+            >
+              Digital Amenities
+            </a>
           </div>
         </div>
       </aside>

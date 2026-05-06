@@ -1,14 +1,6 @@
-import { PageHeader } from "@/components/layout/page-header";
-import { ChatPanel } from "@/components/assistant/chat-panel";
+import { redirect } from "next/navigation";
 
-export default function AsistentePage() {
-  return (
-    <>
-      <PageHeader
-        title="Asistente financiero"
-        subtitle="Respuestas con datos reales · sin alucinaciones · cada consulta queda registrada"
-      />
-      <ChatPanel />
-    </>
-  );
+export default function AsistenteRedirect() {
+  // El asistente ahora vive en el widget flotante (Cafe+IA), siempre visible.
+  redirect("/dashboard");
 }

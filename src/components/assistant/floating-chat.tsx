@@ -1,17 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Send,
-  X,
-  AlertCircle,
-  Loader2,
-  Wrench,
-  ChevronDown,
-  Sparkles,
-} from "lucide-react";
+import { Send, X, AlertCircle, Loader2, Wrench, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrucaAIIcon } from "./bruca-ai-icon";
+import { labelFor } from "@/lib/ai/labels";
 
 interface ToolCall {
   id: string;
@@ -30,8 +23,8 @@ interface Message {
 const SUGGESTED = [
   "¿Qué vence esta semana?",
   "¿Cuánto tengo colocado en pesos?",
-  "¿Qué operaciones están en mora?",
-  "Simulá $1M al 4% por 6 meses",
+  "Cargá una compra de cheque a Juan Pérez por $500.000 (VN $560.000) que vence el 30/06",
+  "Simulá $1.000.000 al 4% durante 6 meses",
 ];
 
 export function FloatingChat() {
@@ -201,10 +194,10 @@ export function FloatingChat() {
               <BrucaAIIcon size={20} />
             </div>
             <div className="flex min-w-0 flex-1 flex-col leading-tight">
-              <span className="text-sm font-semibold tracking-tight text-ink">BruCa IA</span>
+              <span className="text-sm font-semibold tracking-tight text-ink">Cafe+IA</span>
               <span className="flex items-center gap-1.5 text-[10px] text-ink-3">
                 <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-dot" />
-                Asistente financiero · datos en vivo
+                Especialista financiero · consultá y cargá operaciones
               </span>
             </div>
             <button
@@ -273,9 +266,9 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
         <BrucaAIIcon size={24} />
       </div>
       <div>
-        <div className="text-sm font-semibold text-ink">Hola, soy BruCa IA</div>
+        <div className="text-sm font-semibold text-ink">Hola, soy Cafe+IA ☕</div>
         <div className="mx-auto mt-0.5 max-w-[280px] text-[11px] leading-relaxed text-ink-3">
-          Te ayudo con vencimientos, capital, rendimiento y simulaciones. Si no tengo datos te lo digo — no invento.
+          Te ayudo a consultar y cargar operaciones financieras de BruCa. Hablame en lenguaje natural — entiendo cheques, USD, USDT, inversiones y rendimientos.
         </div>
       </div>
       <div className="mt-1 grid w-full grid-cols-1 gap-1.5">
@@ -344,40 +337,28 @@ function Bubble({ message }: { message: Message }) {
 }
 
 function ToolChip({ toolCall }: { toolCall: ToolCall }) {
-  const [expanded, setExpanded] = useState(false);
-  const status = !toolCall.result ? "running" : toolCall.result.ok ? "ok" : "no_data";
+  const status = !toolCall.result
+    ? "running"
+    : toolCall.result.ok
+      ? "ok"
+      : "empty";
+  const label = labelFor(toolCall.name, status);
 
   return (
-    <button
-      type="button"
-      onClick={() => setExpanded((v) => !v)}
-      className="block w-full rounded-md border border-border bg-surface text-left transition-colors hover:bg-surface-2"
-    >
-      <div className="flex items-center gap-1.5 px-2 py-1">
-        <Wrench className="h-2.5 w-2.5 text-ink-3" />
-        <code className="font-mono text-[10px] text-ink-2">{toolCall.name}</code>
-        <span
-          className={cn(
-            "ml-auto rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
-            status === "running" && "bg-info-bg text-info",
-            status === "ok" && "bg-success-bg text-success",
-            status === "no_data" && "bg-warning-bg text-warning",
-          )}
-        >
-          {status === "running" ? "…" : status === "ok" ? "ok" : "vacío"}
-        </span>
-        <ChevronDown
-          className={cn(
-            "h-2.5 w-2.5 text-ink-4 transition-transform",
-            expanded && "rotate-180",
-          )}
-        />
-      </div>
-      {expanded && (
-        <pre className="max-h-32 overflow-auto border-t border-border bg-surface-2 p-2 font-mono text-[9px] leading-relaxed text-ink-2">
-          {JSON.stringify({ args: toolCall.args, result: toolCall.result }, null, 2)}
-        </pre>
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+        status === "running" && "border-info/30 bg-info-bg text-info",
+        status === "ok" && "border-success/30 bg-success-bg text-success",
+        status === "empty" && "border-warning/30 bg-warning-bg text-warning",
       )}
-    </button>
+    >
+      {status === "running" ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Wrench className="h-3 w-3" />
+      )}
+      <span>{label}</span>
+    </div>
   );
 }

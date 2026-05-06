@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BruCa Treasury",
-  description: "Sistema financiero interno de BruCa",
+  title: "BruCa Inversiones + IA",
+  description: "Sistema financiero interno de BruCa · Desarrollado por Digital Amenities",
 };
 
 export default function RootLayout({

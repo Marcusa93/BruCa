@@ -30,7 +30,7 @@ function LoginInner() {
           </div>
           <div>
             <div className="text-base font-semibold tracking-tight text-ink">
-              BruCa Treasury
+              BruCa Inversiones + IA
             </div>
             <div className="text-xs text-ink-3">Sistema financiero interno</div>
           </div>
@@ -83,9 +83,22 @@ function LoginInner() {
           </form>
         </div>
 
-        <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-ink-4">
-          <ShieldCheck className="h-3 w-3" />
-          Acceso compartido protegido por Supabase Auth
+        <div className="mt-4 flex flex-col items-center justify-center gap-1 text-[11px] text-ink-4">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="h-3 w-3" />
+            Acceso compartido protegido por Supabase Auth
+          </span>
+          <span className="text-[10px]">
+            Desarrollado por{" "}
+            <a
+              href="https://digitalamenities.com"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-ink-3 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
+            >
+              Digital Amenities
+            </a>
+          </span>
         </div>
       </div>
     </main>
