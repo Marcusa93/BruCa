@@ -3,6 +3,7 @@ import { TOOLS, type ToolName } from "@/lib/ai/tools";
 import { runTool } from "@/lib/ai/handlers";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,17 @@ const MODEL = process.env.OPENROUTER_MODEL ?? "google/gemini-2.0-flash-001";
 const MAX_TOOL_ROUNDS = 4;
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: "No autenticado" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   if (!process.env.OPENROUTER_API_KEY) {
     return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY no configurada" }), {
       status: 500,
@@ -136,12 +148,13 @@ export async function POST(req: NextRequest) {
         try {
           const sb = createAdminClient();
           await sb.from("assistant_logs").insert({
+            user_id: user.id,
             prompt: lastUserMessage,
             response: assistantText,
             tool_calls: toolCallsLog,
           });
-        } catch {
-          /* ignorar — la tabla puede no existir aún */
+        } catch (e) {
+          console.warn("[assistant_logs] insert falló:", (e as Error).message);
         }
 
         send("done", {});
