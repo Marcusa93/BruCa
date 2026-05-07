@@ -20,6 +20,7 @@ import { PlacementStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtDate, fmtPercent, type Currency } from "@/lib/finance/formatters";
 import type { PlacementStatus } from "@/lib/finance/status";
 import { getCounterpartyDetail } from "@/lib/supabase/queries/counterparties";
+import { PhoneWithWhatsApp } from "@/components/ui/whatsapp-link";
 
 export const dynamic = "force-dynamic";
 
@@ -158,7 +159,7 @@ export default async function ContraparteDetailPage({
               {cp.email ?? "—"}
             </DataRow>
             <DataRow icon={<Phone className="h-3.5 w-3.5" />} label="Teléfono">
-              {cp.phone ?? "—"}
+              <PhoneWithWhatsApp phone={cp.phone} />
             </DataRow>
             {cp.notes && (
               <div className="rounded-md border border-border bg-surface-2 p-2.5 text-xs text-ink-2">

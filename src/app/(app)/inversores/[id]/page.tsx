@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, Mail, Phone, FileText } from "lucide-react";
+import { ArrowLeft, TrendingUp, Mail, Phone, FileText, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/kpi/kpi-card";
 import { PlacementStatusBadge } from "@/components/ui/status-badge";
+import { PhoneWithWhatsApp } from "@/components/ui/whatsapp-link";
 import {
   fmtMoney,
   fmtPercent,
@@ -104,12 +105,20 @@ export default async function InvestorDetailPage({
             : "Inversor inactivo"
         }
         actions={
-          <Button variant="ghost" asChild size="sm">
-            <Link href="/inversores">
-              <ArrowLeft className="h-4 w-4" />
-              Volver
-            </Link>
-          </Button>
+          <>
+            <Button variant="ghost" asChild size="sm">
+              <Link href="/inversores">
+                <ArrowLeft className="h-4 w-4" />
+                Volver
+              </Link>
+            </Button>
+            <Button variant="secondary" asChild size="md">
+              <Link href={`/inversores/${id}/editar`}>
+                <Pencil className="h-4 w-4" />
+                Editar
+              </Link>
+            </Button>
+          </>
         }
       />
 
@@ -153,7 +162,7 @@ export default async function InvestorDetailPage({
               {detail.investor.email ?? "—"}
             </ContactRow>
             <ContactRow icon={<Phone className="h-3.5 w-3.5" />} label="Teléfono">
-              {detail.investor.phone ?? "—"}
+              <PhoneWithWhatsApp phone={detail.investor.phone} />
             </ContactRow>
             {detail.investor.notes && (
               <div className="rounded-md border border-border bg-surface-2 p-2.5 text-xs text-ink-2">

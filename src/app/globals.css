@@ -59,6 +59,17 @@ html, body {
 body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01", "ss02", "cv11";
+  -webkit-tap-highlight-color: transparent;
+  /* iOS safe areas (notch / home indicator) */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* iOS: zoom-on-focus prevention en inputs */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 .tabular {
