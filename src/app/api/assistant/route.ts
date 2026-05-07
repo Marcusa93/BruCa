@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { TOOLS, type ToolName } from "@/lib/ai/tools";
 import { runTool } from "@/lib/ai/handlers";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +29,14 @@ const MODEL = process.env.OPENROUTER_MODEL ?? "google/gemini-2.0-flash-001";
 const MAX_TOOL_ROUNDS = 4;
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   if (!process.env.OPENROUTER_API_KEY) {
     return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY no configurada" }), {
       status: 500,
@@ -111,7 +119,7 @@ export async function POST(req: NextRequest) {
 
               send("tool_call", { id: tc.id, name, args });
 
-              const result = await runTool(name, args);
+              const result = await runTool(name, args, supabase);
               toolCallsLog.push({ name, args, result });
 
               send("tool_result", { id: tc.id, name, result });
@@ -134,8 +142,8 @@ export async function POST(req: NextRequest) {
 
         // log a Supabase (best-effort, no rompe la respuesta si falla)
         try {
-          const sb = createAdminClient();
-          await sb.from("assistant_logs").insert({
+          await supabase.from("assistant_logs").insert({
+            user_id: user.id,
             prompt: lastUserMessage,
             response: assistantText,
             tool_calls: toolCallsLog,
