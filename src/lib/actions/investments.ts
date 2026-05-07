@@ -60,3 +60,50 @@ export async function returnInvestmentAction(id: string) {
   revalidatePath("/dashboard");
   return { ok: true };
 }
+
+export async function updateInvestmentAction(id: string, formData: FormData) {
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = investmentSchema.safeParse({
+    investor_id: raw.investor_id,
+    currency: raw.currency,
+    amount: Number(raw.amount),
+    entry_date: raw.entry_date,
+    estimated_term_days: Number(raw.estimated_term_days),
+    monthly_rate: Number(raw.monthly_rate) / 100,
+    notes: raw.notes || null,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  const v = parsed.data;
+  const committed = expectedTotal(v.amount, v.monthly_rate, v.estimated_term_days);
+  const dueDate = new Date(v.entry_date);
+  dueDate.setDate(dueDate.getDate() + v.estimated_term_days);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("investments")
+    .update({
+      ...v,
+      committed_return_amount: committed,
+      committed_return_date: dueDate.toISOString().slice(0, 10),
+    })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/inversiones");
+  revalidatePath("/dashboard");
+  revalidatePath("/inversores");
+  revalidatePath(`/inversiones/${id}`);
+  redirect("/inversiones");
+}
+
+export async function deleteInvestmentAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("investments").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/inversiones");
+  revalidatePath("/dashboard");
+  revalidatePath("/inversores");
+  redirect("/inversiones");
+}

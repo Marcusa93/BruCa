@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlacementStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtDate, fmtDays } from "@/lib/finance/formatters";
@@ -19,17 +21,21 @@ export function MaturityList({ items }: { items: MaturityItem[] }) {
     <Card>
       <CardHeader>
         <CardTitle>Próximos vencimientos</CardTitle>
-        <span className="text-[11px] font-medium text-ink-3">
-          {items.length} operaciones
-        </span>
+        <Link
+          href="/vencimientos"
+          className="text-[11px] font-medium text-brand-700 hover:underline"
+        >
+          Ver todos →
+        </Link>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <div className="divide-y divide-border">
           {items.map((item) => {
             const days = daysUntil(item.dueDate);
             return (
-              <div
+              <Link
                 key={item.id}
+                href={`/colocaciones/${item.id}`}
                 className="grid grid-cols-12 items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
               >
                 <div className="col-span-4">
@@ -43,10 +49,11 @@ export function MaturityList({ items }: { items: MaturityItem[] }) {
                   <div className="tabular text-sm text-ink-2">{fmtDate(item.dueDate)}</div>
                   <div className="text-xs text-ink-4">{fmtDays(days)}</div>
                 </div>
-                <div className="col-span-2 flex justify-end">
+                <div className="col-span-2 flex items-center justify-end gap-1">
                   <PlacementStatusBadge status={item.status} />
+                  <ChevronRight className="h-3 w-3 text-ink-4" />
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

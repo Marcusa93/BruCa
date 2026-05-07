@@ -23,6 +23,7 @@ export interface MaturityRow {
 
 export interface CommitmentRow {
   investor: string;
+  investorId: string;
   date: string;
   amount: number;
   currency: Currency;
@@ -49,7 +50,7 @@ export async function getDashboardData() {
       .order("due_date", { ascending: true, nullsFirst: false }),
     sb
       .from("investments")
-      .select("id, currency, amount, monthly_rate, committed_return_amount, committed_return_date, status, investors(full_name)")
+      .select("id, investor_id, currency, amount, monthly_rate, committed_return_amount, committed_return_date, status, investors(full_name)")
       .order("committed_return_date", { ascending: true, nullsFirst: false }),
   ]);
 
@@ -69,6 +70,7 @@ export async function getDashboardData() {
   };
   type InvRow = {
     id: string;
+    investor_id: string;
     currency: Currency;
     amount: number;
     monthly_rate: number;
@@ -142,6 +144,7 @@ export async function getDashboardData() {
     .filter((i) => i.committed_return_date && i.committed_return_amount)
     .map((i) => ({
       investor: i.investors?.full_name ?? "—",
+      investorId: i.investor_id,
       date: i.committed_return_date as string,
       amount: Number(i.committed_return_amount),
       currency: i.currency,

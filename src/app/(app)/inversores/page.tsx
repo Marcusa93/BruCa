@@ -1,22 +1,44 @@
 import Link from "next/link";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
 import { listInvestorsWithStats } from "@/lib/supabase/queries/investors";
+import { InvestorsFilters } from "@/components/filters/investors-filters";
 
 export const dynamic = "force-dynamic";
 
-export default async function InversoresPage() {
-  const investors = await listInvestorsWithStats();
+export default async function InversoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
+  const sp = await searchParams;
+  const all = await listInvestorsWithStats();
+
+  const filtered = all.filter((inv) => {
+    if (sp.q) {
+      const q = sp.q.toLowerCase();
+      if (
+        !inv.full_name.toLowerCase().includes(q) &&
+        !(inv.email ?? "").toLowerCase().includes(q) &&
+        !(inv.document_number ?? "").toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+    }
+    if (sp.status === "active" && !inv.is_active) return false;
+    if (sp.status === "inactive" && inv.is_active) return false;
+    return true;
+  });
 
   return (
     <>
       <PageHeader
         title="Inversores"
-        subtitle={`${investors.length} ${investors.length === 1 ? "inversor cargado" : "inversores cargados"}`}
+        subtitle={`${filtered.length} de ${all.length} ${all.length === 1 ? "inversor" : "inversores"}`}
         actions={
           <Button asChild>
             <Link href="/inversores/nuevo">
@@ -27,17 +49,22 @@ export default async function InversoresPage() {
         }
       />
 
-      {investors.length === 0 ? (
-        <Card>
+      <InvestorsFilters
+        active={{ q: sp.q ?? "", status: sp.status ?? "all" }}
+      />
+
+      {filtered.length === 0 ? (
+        <Card className="mt-4">
           <CardContent className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-            <div className="text-sm font-medium text-ink">Todavía no hay inversores</div>
-            <div className="max-w-sm text-xs text-ink-3">
-              Cargá al primer cliente desde el botón superior, o pedile a Cafe+IA: &ldquo;Cargá un inversor llamado X&rdquo;.
+            <div className="text-sm font-medium text-ink">
+              {all.length === 0
+                ? "Todavía no hay inversores"
+                : "Sin coincidencias"}
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="mt-4">
           <CardContent className="px-0 pb-0">
             <table className="w-full text-sm">
               <thead>
@@ -53,7 +80,7 @@ export default async function InversoresPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {investors.map((inv) => (
+                {filtered.map((inv) => (
                   <tr
                     key={inv.id}
                     className="group transition-colors hover:bg-surface-2"
@@ -100,12 +127,22 @@ export default async function InversoresPage() {
                       {fmtDate(inv.created_at)}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <Link
-                        href={`/inversores/${inv.id}`}
-                        className="inline-flex items-center gap-1 text-xs text-ink-3 transition-colors group-hover:text-brand-700"
-                      >
-                        Ver ficha <ChevronRight className="h-3 w-3" />
-                      </Link>
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          href={`/inversores/${inv.id}/editar`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-brand-700"
+                          aria-label="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
+                        <Link
+                          href={`/inversores/${inv.id}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-brand-700"
+                          aria-label="Ver ficha"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

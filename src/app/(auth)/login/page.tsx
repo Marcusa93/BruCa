@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signInAction } from "@/lib/auth/actions";
 
@@ -83,22 +83,16 @@ function LoginInner() {
           </form>
         </div>
 
-        <div className="mt-4 flex flex-col items-center justify-center gap-1 text-[11px] text-ink-4">
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="h-3 w-3" />
-            Acceso compartido protegido por Supabase Auth
-          </span>
-          <span className="text-[10px]">
-            Desarrollado por{" "}
-            <a
-              href="https://digitalamenities.com"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-ink-3 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
-            >
-              Digital Amenities
-            </a>
-          </span>
+        <div className="mt-4 text-center text-[10px] text-ink-4">
+          Desarrollado por{" "}
+          <a
+            href="https://digitalamenities.com"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-ink-3 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
+          >
+            Digital Amenities
+          </a>
         </div>
       </div>
     </main>

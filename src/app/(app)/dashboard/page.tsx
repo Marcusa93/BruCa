@@ -1,4 +1,5 @@
-import { TrendingUp, Wallet, Banknote, Target, ArrowUpRight, Plus } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, Wallet, Banknote, Target, ArrowUpRight, Plus, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,13 +34,17 @@ export default async function DashboardPage() {
         subtitle="Capital colocado, vencimientos y rendimiento del período"
         actions={
           <>
-            <Button variant="secondary" size="md">
-              <ArrowUpRight className="h-4 w-4" />
-              Exportar
+            <Button variant="secondary" size="md" asChild>
+              <Link href="/colocaciones">
+                <ArrowUpRight className="h-4 w-4" />
+                Ver operaciones
+              </Link>
             </Button>
-            <Button variant="primary" size="md">
-              <Plus className="h-4 w-4" />
-              Nueva operación
+            <Button variant="primary" size="md" asChild>
+              <Link href="/colocaciones/nueva">
+                <Plus className="h-4 w-4" />
+                Nueva operación
+              </Link>
             </Button>
           </>
         }
@@ -47,6 +52,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
+          href="/inversiones"
           label="Capital recibido"
           value={fmtMoney(kpis.capitalReceived.ARS, "ARS")}
           hint={`${commitments.length} inversor${commitments.length === 1 ? "" : "es"} activo${commitments.length === 1 ? "" : "s"}`}
@@ -54,18 +60,21 @@ export default async function DashboardPage() {
           icon={<Wallet className="h-4 w-4" />}
         />
         <KpiCard
+          href="/colocaciones?kind=check_purchase"
           label="Capital colocado en cheques"
           value={fmtMoney(kpis.capitalPlacedActive.ARS, "ARS")}
           hint={`${fmtPercent(placedRatio)} del total recibido`}
           icon={<Target className="h-4 w-4" />}
         />
         <KpiCard
+          href="/tesoreria"
           label="Capital en caja"
           value={fmtMoney(kpis.treasury.ARS, "ARS")}
           hint={kpis.treasury.USD > 0 ? `+ US$ ${kpis.treasury.USD.toLocaleString("es-AR")}` : "ARS · arqueo más reciente"}
           icon={<Banknote className="h-4 w-4" />}
         />
         <KpiCard
+          href="/inversiones"
           label="Rendimiento esperado · mes"
           value={fmtMoney(kpis.expectedMonthlyReturn, "ARS")}
           hint={`A tasa promedio ${fmtPercent(kpis.weightedRate)} mensual`}
@@ -123,18 +132,26 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {commitments.map((c) => (
-              <div
+              <Link
                 key={c.investor + c.date}
-                className="flex items-center justify-between rounded-md border border-border bg-surface-2 p-3"
+                href={`/inversores/${c.investorId}`}
+                className="group flex items-center justify-between rounded-md border border-border bg-surface-2 p-3 transition-colors hover:border-brand-400 hover:bg-brand-50"
               >
                 <div>
-                  <div className="text-sm font-semibold text-ink">{c.investor}</div>
-                  <div className="text-xs text-ink-3">Devolución comprometida · {fmtDate(c.date)}</div>
+                  <div className="text-sm font-semibold text-ink group-hover:text-brand-800">
+                    {c.investor}
+                  </div>
+                  <div className="text-xs text-ink-3">
+                    Devolución comprometida · {fmtDate(c.date)}
+                  </div>
                 </div>
-                <div className="tabular text-right text-sm font-semibold text-ink">
-                  {fmtMoney(c.amount, c.currency)}
+                <div className="flex items-center gap-2">
+                  <div className="tabular text-right text-sm font-semibold text-ink">
+                    {fmtMoney(c.amount, c.currency)}
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 text-ink-4 transition-colors group-hover:text-brand-700" />
                 </div>
-              </div>
+              </Link>
             ))}
             <div className="rounded-md border border-dashed border-border p-3 text-xs text-ink-3">
               Tasa promedio ponderada de devolución:{" "}

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlacementStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
 import { listOperations } from "@/lib/supabase/queries/operations";
+import { OperationsFilters } from "@/components/filters/operations-filters";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +19,37 @@ const KIND_META: Record<string, { label: string; tint: string }> = {
   other: { label: "Otro", tint: "bg-surface-2 text-ink-2" },
 };
 
-export default async function ColocacionesPage() {
-  const operations = await listOperations();
+export default async function ColocacionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    kind?: string;
+    status?: string;
+    currency?: string;
+    q?: string;
+  }>;
+}) {
+  const sp = await searchParams;
+  const allOperations = await listOperations();
+
+  const filtered = allOperations.filter((o) => {
+    if (sp.kind && sp.kind !== "all" && o.kind !== sp.kind) return false;
+    if (sp.status && sp.status !== "all" && o.status !== sp.status) return false;
+    if (sp.currency && sp.currency !== "all" && o.currency !== sp.currency)
+      return false;
+    if (sp.q) {
+      const q = sp.q.toLowerCase();
+      const hay = (o.counterparty ?? "").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 
   return (
     <>
       <PageHeader
         title="Colocaciones"
-        subtitle={`${operations.length} operaciones registradas`}
+        subtitle={`${filtered.length} de ${allOperations.length} operaciones`}
         actions={
           <Button asChild>
             <Link href="/colocaciones/nueva">
@@ -36,17 +60,32 @@ export default async function ColocacionesPage() {
         }
       />
 
-      {operations.length === 0 ? (
-        <Card>
+      <OperationsFilters
+        active={{
+          kind: sp.kind ?? "all",
+          status: sp.status ?? "all",
+          currency: sp.currency ?? "all",
+          q: sp.q ?? "",
+        }}
+      />
+
+      {filtered.length === 0 ? (
+        <Card className="mt-4">
           <CardContent className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-            <div className="text-sm font-medium text-ink">Todavía no hay colocaciones</div>
+            <div className="text-sm font-medium text-ink">
+              {allOperations.length === 0
+                ? "Todavía no hay colocaciones"
+                : "Sin coincidencias para los filtros aplicados"}
+            </div>
             <div className="max-w-sm text-xs text-ink-3">
-              Cargá una compra de cheque, USD o USDT desde el botón superior, o hacelo desde Cafe+IA.
+              {allOperations.length === 0
+                ? "Cargá una compra de cheque, USD o USDT desde el botón superior."
+                : "Probá ajustar los filtros o limpiarlos."}
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="mt-4">
           <CardContent className="px-0 pb-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -56,14 +95,14 @@ export default async function ColocacionesPage() {
                     <th className="px-5 py-2.5 text-left">Contraparte</th>
                     <th className="px-5 py-2.5 text-right">Monto</th>
                     <th className="px-5 py-2.5 text-right">Detalle</th>
-                    <th className="px-5 py-2.5 text-right">Tasa / Spread</th>
+                    <th className="px-5 py-2.5 text-right">Tasa</th>
                     <th className="px-5 py-2.5 text-right">Inicio</th>
                     <th className="px-5 py-2.5 text-right">Vencimiento</th>
                     <th className="px-5 py-2.5 text-left">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {operations.map((o) => {
+                  {filtered.map((o) => {
                     const meta = KIND_META[o.kind] ?? KIND_META.other;
                     let detail = "—";
                     if (o.kind === "check_purchase" && o.expected_total) {
@@ -72,36 +111,61 @@ export default async function ColocacionesPage() {
                       detail = `${o.fx_trade.units.toLocaleString("es-AR")} ${o.fx_trade.asset} × ${o.fx_trade.unit_price}`;
                     }
                     return (
-                      <tr key={o.id} className="transition-colors hover:bg-surface-2">
+                      <tr
+                        key={o.id}
+                        className="cursor-pointer transition-colors hover:bg-surface-2"
+                      >
                         <td className="px-5 py-3">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.tint}`}
+                          <Link
+                            href={`/colocaciones/${o.id}`}
+                            className="block"
                           >
-                            {meta.label}
-                          </span>
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.tint}`}
+                            >
+                              {meta.label}
+                            </span>
+                          </Link>
                         </td>
                         <td className="px-5 py-3 font-medium text-ink">
-                          {o.counterparty ?? "—"}
+                          <Link
+                            href={`/colocaciones/${o.id}`}
+                            className="block hover:text-brand-700"
+                          >
+                            {o.counterparty ?? "—"}
+                          </Link>
                         </td>
                         <td className="tabular px-5 py-3 text-right font-semibold text-ink">
-                          {fmtMoney(Number(o.amount), o.currency)}
+                          <Link href={`/colocaciones/${o.id}`} className="block">
+                            {fmtMoney(Number(o.amount), o.currency)}
+                          </Link>
                         </td>
                         <td className="tabular px-5 py-3 text-right text-xs text-ink-2">
-                          {detail}
+                          <Link href={`/colocaciones/${o.id}`} className="block">
+                            {detail}
+                          </Link>
                         </td>
                         <td className="tabular px-5 py-3 text-right text-xs text-ink-2">
-                          {o.monthly_rate
-                            ? fmtPercent(Number(o.monthly_rate))
-                            : "—"}
+                          <Link href={`/colocaciones/${o.id}`} className="block">
+                            {o.monthly_rate
+                              ? fmtPercent(Number(o.monthly_rate))
+                              : "—"}
+                          </Link>
                         </td>
                         <td className="tabular px-5 py-3 text-right text-xs text-ink-3">
-                          {fmtDate(o.start_date)}
+                          <Link href={`/colocaciones/${o.id}`} className="block">
+                            {fmtDate(o.start_date)}
+                          </Link>
                         </td>
                         <td className="tabular px-5 py-3 text-right text-xs text-ink-3">
-                          {o.due_date ? fmtDate(o.due_date) : "—"}
+                          <Link href={`/colocaciones/${o.id}`} className="block">
+                            {o.due_date ? fmtDate(o.due_date) : "—"}
+                          </Link>
                         </td>
                         <td className="px-5 py-3">
-                          <PlacementStatusBadge status={o.status} />
+                          <Link href={`/colocaciones/${o.id}`} className="block">
+                            <PlacementStatusBadge status={o.status} />
+                          </Link>
                         </td>
                       </tr>
                     );

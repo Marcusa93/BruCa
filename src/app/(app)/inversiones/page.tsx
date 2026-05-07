@@ -1,15 +1,19 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
-import { listInvestments } from "@/lib/supabase/queries/investments";
+import { listInvestments, listInvestorsBasic } from "@/lib/supabase/queries/investments";
+import { InvestmentsFilters } from "@/components/filters/investments-filters";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, { label: string; tone: "success" | "info" | "warning" | "danger" | "neutral" | "brand" }> = {
+const STATUS_LABEL: Record<
+  string,
+  { label: string; tone: "success" | "info" | "warning" | "danger" | "neutral" | "brand" }
+> = {
   active: { label: "Activa", tone: "info" },
   partially_placed: { label: "Colocada parcial", tone: "info" },
   fully_placed: { label: "Colocada", tone: "info" },
@@ -17,13 +21,39 @@ const STATUS_LABEL: Record<string, { label: string; tone: "success" | "info" | "
   cancelled: { label: "Cancelada", tone: "neutral" },
 };
 
-export default async function InversionesPage() {
-  const investments = await listInvestments();
+export default async function InversionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    investor?: string;
+    status?: string;
+    currency?: string;
+    q?: string;
+  }>;
+}) {
+  const sp = await searchParams;
+  const [allInvestments, investorsList] = await Promise.all([
+    listInvestments(),
+    listInvestorsBasic(),
+  ]);
 
-  const totalARS = investments
+  const filtered = allInvestments.filter((i) => {
+    if (sp.investor && sp.investor !== "all" && i.investor_id !== sp.investor)
+      return false;
+    if (sp.status && sp.status !== "all" && i.status !== sp.status) return false;
+    if (sp.currency && sp.currency !== "all" && i.currency !== sp.currency)
+      return false;
+    if (sp.q) {
+      const q = sp.q.toLowerCase();
+      if (!i.investor_name.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const totalARS = filtered
     .filter((i) => ["active", "partially_placed", "fully_placed"].includes(i.status) && i.currency === "ARS")
     .reduce((s, i) => s + Number(i.amount), 0);
-  const totalUSD = investments
+  const totalUSD = filtered
     .filter((i) => ["active", "partially_placed", "fully_placed"].includes(i.status) && i.currency === "USD")
     .reduce((s, i) => s + Number(i.amount), 0);
 
@@ -31,7 +61,7 @@ export default async function InversionesPage() {
     <>
       <PageHeader
         title="Inversiones recibidas"
-        subtitle={`${investments.length} aportes · ${fmtMoney(totalARS, "ARS")}${totalUSD > 0 ? ` + ${fmtMoney(totalUSD, "USD")}` : ""} activos`}
+        subtitle={`${filtered.length} de ${allInvestments.length} aportes · ${fmtMoney(totalARS, "ARS")}${totalUSD > 0 ? ` + ${fmtMoney(totalUSD, "USD")}` : ""} activos`}
         actions={
           <Button asChild>
             <Link href="/inversiones/nueva">
@@ -42,36 +72,46 @@ export default async function InversionesPage() {
         }
       />
 
-      {investments.length === 0 ? (
-        <Card>
+      <InvestmentsFilters
+        active={{
+          investor: sp.investor ?? "all",
+          status: sp.status ?? "all",
+          currency: sp.currency ?? "all",
+          q: sp.q ?? "",
+        }}
+        investors={investorsList}
+      />
+
+      {filtered.length === 0 ? (
+        <Card className="mt-4">
           <CardContent className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-            <div className="text-sm font-medium text-ink">Todavía no hay inversiones</div>
-            <div className="max-w-sm text-xs text-ink-3">
-              Cargá el primer aporte de un inversor desde el botón superior, o pedile a Cafe+IA.
+            <div className="text-sm font-medium text-ink">
+              {allInvestments.length === 0
+                ? "Todavía no hay inversiones"
+                : "Sin coincidencias para los filtros"}
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="mt-4">
           <CardContent className="px-0 pb-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-2 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-3">
                   <th className="px-5 py-2.5 text-left">Inversor</th>
                   <th className="px-5 py-2.5 text-right">Capital</th>
-                  <th className="px-5 py-2.5 text-right">Tasa mensual</th>
+                  <th className="px-5 py-2.5 text-right">Tasa</th>
                   <th className="px-5 py-2.5 text-right">Plazo</th>
                   <th className="px-5 py-2.5 text-right">Ingreso</th>
-                  <th className="px-5 py-2.5 text-right">Devolución comprometida</th>
+                  <th className="px-5 py-2.5 text-right">Devolución</th>
                   <th className="px-5 py-2.5 text-left">Estado</th>
+                  <th className="px-5 py-2.5"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {investments.map((i) => {
-                  const status = STATUS_LABEL[i.status] ?? {
-                    label: i.status,
-                    tone: "neutral" as const,
-                  };
+                {filtered.map((i) => {
+                  const status =
+                    STATUS_LABEL[i.status] ?? { label: i.status, tone: "neutral" as const };
                   return (
                     <tr key={i.id} className="transition-colors hover:bg-surface-2">
                       <td className="px-5 py-3">
@@ -108,6 +148,15 @@ export default async function InversionesPage() {
                         <Badge tone={status.tone} dot>
                           {status.label}
                         </Badge>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          href={`/inversiones/${i.id}/editar`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-brand-700"
+                          aria-label="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Link>
                       </td>
                     </tr>
                   );

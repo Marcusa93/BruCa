@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,11 +10,20 @@ interface KpiCardProps {
   accent?: "neutral" | "brand" | "success" | "warning" | "danger";
   sparkline?: number[];
   icon?: React.ReactNode;
+  href?: string;
 }
 
-export function KpiCard({ label, value, hint, delta, accent = "neutral", sparkline, icon }: KpiCardProps) {
+export function KpiCard({ label, value, hint, delta, accent = "neutral", sparkline, icon, href }: KpiCardProps) {
+  const Wrapper = href ? Link : ("div" as const);
+  const wrapperProps = href ? { href } : {};
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-border bg-surface p-5 shadow-card transition-all hover:border-border-strong hover:shadow-elevated">
+    <Wrapper
+      {...(wrapperProps as { href: string })}
+      className={cn(
+        "group relative block overflow-hidden rounded-lg border border-border bg-surface p-5 shadow-card transition-all hover:border-border-strong hover:shadow-elevated",
+        href && "cursor-pointer hover:-translate-y-0.5",
+      )}
+    >
       {accent === "brand" && (
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-400 to-transparent opacity-70" />
       )}
@@ -51,7 +61,7 @@ export function KpiCard({ label, value, hint, delta, accent = "neutral", sparkli
       {sparkline && sparkline.length > 1 && (
         <Sparkline values={sparkline} positive={delta?.positive ?? true} className="mt-4 h-10" />
       )}
-    </div>
+    </Wrapper>
   );
 }
 
