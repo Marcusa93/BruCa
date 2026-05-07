@@ -1,7 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Check, AlertTriangle, RefreshCw, X, Loader2 } from "lucide-react";
+import {
+  Check,
+  AlertTriangle,
+  RefreshCw,
+  X,
+  Loader2,
+  Eye,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtDate, type Currency } from "@/lib/finance/formatters";
@@ -93,9 +101,12 @@ function Row({ item }: { item: BucketItem }) {
   return (
     <div className="grid grid-cols-12 items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2">
       <div className="col-span-12 sm:col-span-4">
-        <div className="text-sm font-semibold text-ink">
+        <Link
+          href={`/colocaciones/${item.id}`}
+          className="block text-sm font-semibold text-ink hover:text-brand-700"
+        >
           {item.counterparty ?? "—"}
-        </div>
+        </Link>
         <div className="text-xs text-ink-3">
           {KIND_LABEL[item.kind] ?? item.kind}
         </div>
@@ -107,6 +118,14 @@ function Row({ item }: { item: BucketItem }) {
         {fmtDate(item.due_date)}
       </div>
       <div className="col-span-12 flex flex-wrap justify-end gap-1.5 sm:col-span-3">
+        <Link
+          href={`/colocaciones/${item.id}`}
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-surface-2 px-2 text-[11px] font-medium text-ink-3 transition-colors hover:bg-surface-3 hover:text-brand-700"
+          aria-label="Ver detalle"
+        >
+          <Eye className="h-3 w-3" />
+          <span className="hidden sm:inline">Detalle</span>
+        </Link>
         <ActionButton
           label="Cobrada"
           tone="success"

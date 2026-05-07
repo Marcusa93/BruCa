@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Eye } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,6 +99,7 @@ export default async function ColocacionesPage({
                     <th className="px-5 py-2.5 text-right">Inicio</th>
                     <th className="px-5 py-2.5 text-right">Vencimiento</th>
                     <th className="px-5 py-2.5 text-left">Estado</th>
+                    <th className="px-5 py-2.5 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -166,6 +167,24 @@ export default async function ColocacionesPage({
                           <Link href={`/colocaciones/${o.id}`} className="block">
                             <PlacementStatusBadge status={o.status} />
                           </Link>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <div className="inline-flex items-center gap-1">
+                            <Link
+                              href={`/colocaciones/${o.id}`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-brand-700"
+                              aria-label="Ver detalle"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Link>
+                            <Link
+                              href={`/colocaciones/${o.id}/editar`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-3 transition-colors hover:bg-surface-3 hover:text-brand-700"
+                              aria-label="Editar"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );
