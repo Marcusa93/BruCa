@@ -1,7 +1,10 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
 import { simulateReinvestment } from "@/lib/finance/simulations";
 import { sendPushToAll } from "@/lib/push/server";
 import type { ToolName } from "./tools";
+
+type DbClient = SupabaseClient<Database>;
 
 async function notifyAI(title: string, body: string, url = "/dashboard") {
   try {
@@ -25,52 +28,57 @@ function isMissingTable(err: unknown) {
   return /relation .* does not exist|schema cache/i.test(msg);
 }
 
-export async function runTool(name: ToolName, args: Args): Promise<ToolResult> {
+export async function runTool(
+  name: ToolName,
+  args: Args,
+  sb: DbClient,
+): Promise<ToolResult> {
   try {
     switch (name) {
       // ===== LECTURA =====
       case "get_dashboard_kpis":
-        return await getDashboardKpis(String(args.currency ?? "ALL"));
+        return await getDashboardKpis(sb, String(args.currency ?? "ALL"));
       case "list_upcoming_maturities":
         return await listUpcomingMaturities(
+          sb,
           Number(args.days),
           String(args.currency ?? "ALL"),
           Number(args.limit ?? 20),
         );
       case "list_overdue_or_default_placements":
-        return await listOverdue(Number(args.limit ?? 20));
+        return await listOverdue(sb, Number(args.limit ?? 20));
       case "top_investors_by_capital":
-        return await topInvestors(Number(args.limit ?? 10), String(args.currency ?? "ALL"));
+        return await topInvestors(sb, Number(args.limit ?? 10), String(args.currency ?? "ALL"));
       case "capital_by_currency":
-        return await capitalByCurrency();
+        return await capitalByCurrency(sb);
       case "treasury_latest":
-        return await treasuryLatest();
+        return await treasuryLatest(sb);
       case "deviation_ranking":
-        return await deviationRanking(Number(args.limit ?? 10));
+        return await deviationRanking(sb, Number(args.limit ?? 10));
       case "search_operation":
-        return await searchOperation(args);
+        return await searchOperation(sb, args);
       case "find_investor":
-        return await findInvestor(String(args.name ?? ""));
+        return await findInvestor(sb, String(args.name ?? ""));
       case "list_counterparties":
-        return await listCounterpartiesTool(args);
+        return await listCounterpartiesTool(sb, args);
       case "simulate_reinvestment":
         return runSimulateReinvestment(args);
 
       // ===== ESCRITURA =====
       case "create_investor":
-        return await createInvestor(args);
+        return await createInvestor(sb, args);
       case "create_investment":
-        return await createInvestment(args);
+        return await createInvestment(sb, args);
       case "create_check_purchase":
-        return await createCheckPurchase(args);
+        return await createCheckPurchase(sb, args);
       case "create_fx_trade":
-        return await createFxTrade(args);
+        return await createFxTrade(sb, args);
       case "create_crypto_trade":
-        return await createCryptoTrade(args);
+        return await createCryptoTrade(sb, args);
       case "register_payment":
-        return await registerPayment(args);
+        return await registerPayment(sb, args);
       case "set_operation_status":
-        return await setOperationStatus(args);
+        return await setOperationStatus(sb, args);
 
       default:
         return { ok: false, error: `Acción desconocida: ${name}` };
@@ -85,8 +93,7 @@ export async function runTool(name: ToolName, args: Args): Promise<ToolResult> {
 
 // ============ LECTURA ============
 
-async function getDashboardKpis(currency: string): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function getDashboardKpis(sb: DbClient, currency: string): Promise<ToolResult> {
   const { data, error } = await sb.from("v_dashboard_kpis").select("*");
   if (error) throw error;
   if (!data || data.length === 0) return noData("No hay inversiones cargadas todavía.");
@@ -95,11 +102,11 @@ async function getDashboardKpis(currency: string): Promise<ToolResult> {
 }
 
 async function listUpcomingMaturities(
+  sb: DbClient,
   days: number,
   currency: string,
   limit: number,
 ): Promise<ToolResult> {
-  const sb = createAdminClient();
   const today = todayISO();
   const limitDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
   let q = sb
@@ -120,8 +127,7 @@ async function listUpcomingMaturities(
   return { ok: true, data, meta: { count: data.length } };
 }
 
-async function listOverdue(limit: number): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function listOverdue(sb: DbClient, limit: number): Promise<ToolResult> {
   const { data, error } = await sb
     .from("operations")
     .select("id, kind, counterparty, currency, amount, due_date, status")
@@ -133,8 +139,11 @@ async function listOverdue(limit: number): Promise<ToolResult> {
   return { ok: true, data };
 }
 
-async function topInvestors(limit: number, currency: string): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function topInvestors(
+  sb: DbClient,
+  limit: number,
+  currency: string,
+): Promise<ToolResult> {
   let q = sb
     .from("investments")
     .select("investor_id, currency, amount, investors(full_name)")
@@ -160,8 +169,7 @@ async function topInvestors(limit: number, currency: string): Promise<ToolResult
   return { ok: true, data: sorted };
 }
 
-async function capitalByCurrency(): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function capitalByCurrency(sb: DbClient): Promise<ToolResult> {
   const { data: invs, error: e1 } = await sb.from("investments").select("currency, amount, status");
   if (e1) throw e1;
   const { data: ops, error: e2 } = await sb.from("operations").select("currency, amount, status, kind");
@@ -191,16 +199,14 @@ async function capitalByCurrency(): Promise<ToolResult> {
   return { ok: true, data: { received, placed_in_checks: placedChecks } };
 }
 
-async function treasuryLatest(): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function treasuryLatest(sb: DbClient): Promise<ToolResult> {
   const { data, error } = await sb.from("v_treasury_latest").select("*");
   if (error) throw error;
   if (!data || data.length === 0) return noData("No hay arqueos cargados.");
   return { ok: true, data };
 }
 
-async function deviationRanking(limit: number): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function deviationRanking(sb: DbClient, limit: number): Promise<ToolResult> {
   const { data, error } = await sb
     .from("operations")
     .select("id, counterparty, currency, expected_return, actual_return")
@@ -219,8 +225,7 @@ async function deviationRanking(limit: number): Promise<ToolResult> {
   return { ok: true, data: enriched };
 }
 
-async function searchOperation(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function searchOperation(sb: DbClient, args: Args): Promise<ToolResult> {
   let q = sb
     .from("operations")
     .select("id, kind, counterparty, currency, amount, due_date, status, expected_total")
@@ -237,9 +242,8 @@ async function searchOperation(args: Args): Promise<ToolResult> {
   return { ok: true, data };
 }
 
-async function findInvestor(name: string): Promise<ToolResult> {
+async function findInvestor(sb: DbClient, name: string): Promise<ToolResult> {
   if (!name.trim()) return { ok: false, error: "Nombre vacío" };
-  const sb = createAdminClient();
   const { data, error } = await sb
     .from("investors")
     .select("id, full_name, is_active")
@@ -250,8 +254,7 @@ async function findInvestor(name: string): Promise<ToolResult> {
   return { ok: true, data };
 }
 
-async function listCounterpartiesTool(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function listCounterpartiesTool(sb: DbClient, args: Args): Promise<ToolResult> {
   let q = sb
     .from("counterparties")
     .select("id, full_name, alias, bank, risk_level, is_active, document_number")
@@ -297,8 +300,7 @@ function runSimulateReinvestment(args: Args): ToolResult {
 
 // ============ ESCRITURA ============
 
-async function createInvestor(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function createInvestor(sb: DbClient, args: Args): Promise<ToolResult> {
   const payload = {
     full_name: String(args.full_name).trim(),
     document_number: args.document_number ? String(args.document_number) : null,
@@ -313,11 +315,10 @@ async function createInvestor(args: Args): Promise<ToolResult> {
   return { ok: true, data };
 }
 
-async function resolveInvestorId(args: Args): Promise<string | null> {
+async function resolveInvestorId(sb: DbClient, args: Args): Promise<string | null> {
   if (args.investor_id) return String(args.investor_id);
   const name = args.investor_name ? String(args.investor_name).trim() : "";
   if (!name) return null;
-  const sb = createAdminClient();
   const { data: existing } = await sb
     .from("investors")
     .select("id, full_name")
@@ -334,9 +335,8 @@ async function resolveInvestorId(args: Args): Promise<string | null> {
   return String(data.id);
 }
 
-async function createInvestment(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
-  const investor_id = await resolveInvestorId(args);
+async function createInvestment(sb: DbClient, args: Args): Promise<ToolResult> {
+  const investor_id = await resolveInvestorId(sb, args);
   const currency = String(args.currency).toUpperCase();
   const amount = Number(args.amount);
   if (!investor_id) return { ok: false, error: "Falta inversor (investor_id o investor_name)." };
@@ -383,8 +383,7 @@ async function createInvestment(args: Args): Promise<ToolResult> {
   return { ok: true, data };
 }
 
-async function createCheckPurchase(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function createCheckPurchase(sb: DbClient, args: Args): Promise<ToolResult> {
   const counterparty = String(args.counterparty);
   const paid = Number(args.paid_amount);
   const face = Number(args.face_value);
@@ -429,7 +428,7 @@ async function createCheckPurchase(args: Args): Promise<ToolResult> {
 
   // Vincular a inversor si pidió
   if (args.attribute_to_investor) {
-    const investorId = await resolveInvestorId({ investor_name: args.attribute_to_investor });
+    const investorId = await resolveInvestorId(sb, { investor_name: args.attribute_to_investor });
     if (investorId) {
       const { data: inv } = await sb
         .from("investments")
@@ -456,8 +455,11 @@ async function createCheckPurchase(args: Args): Promise<ToolResult> {
   return { ok: true, data: op };
 }
 
-async function createTrade(kind: "fx" | "crypto", args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function createTrade(
+  sb: DbClient,
+  kind: "fx" | "crypto",
+  args: Args,
+): Promise<ToolResult> {
   const side = String(args.side);
   const asset = String(args.asset).toUpperCase();
   const units = Number(args.units);
@@ -500,7 +502,7 @@ async function createTrade(kind: "fx" | "crypto", args: Args): Promise<ToolResul
 
   // Vincular a inversor si pidió y es buy
   if (side === "buy" && args.attribute_to_investor) {
-    const investorId = await resolveInvestorId({ investor_name: args.attribute_to_investor });
+    const investorId = await resolveInvestorId(sb, { investor_name: args.attribute_to_investor });
     if (investorId) {
       const { data: inv } = await sb
         .from("investments")
@@ -529,11 +531,10 @@ async function createTrade(kind: "fx" | "crypto", args: Args): Promise<ToolResul
   return { ok: true, data: op };
 }
 
-const createFxTrade = (args: Args) => createTrade("fx", args);
-const createCryptoTrade = (args: Args) => createTrade("crypto", args);
+const createFxTrade = (sb: DbClient, args: Args) => createTrade(sb, "fx", args);
+const createCryptoTrade = (sb: DbClient, args: Args) => createTrade(sb, "crypto", args);
 
-async function registerPayment(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function registerPayment(sb: DbClient, args: Args): Promise<ToolResult> {
   const payload = {
     operation_id: args.operation_id ? String(args.operation_id) : null,
     investment_id: args.investment_id ? String(args.investment_id) : null,
@@ -551,8 +552,7 @@ async function registerPayment(args: Args): Promise<ToolResult> {
   return { ok: true, data };
 }
 
-async function setOperationStatus(args: Args): Promise<ToolResult> {
-  const sb = createAdminClient();
+async function setOperationStatus(sb: DbClient, args: Args): Promise<ToolResult> {
   const operation_id = String(args.operation_id);
   const new_status = String(args.new_status);
   const update: Record<string, unknown> = { status: new_status };
