@@ -47,3 +47,34 @@ export function PhoneWithWhatsApp({
     </span>
   );
 }
+
+/** Botón compacto solo del logo, ideal para celdas de tabla. Si no hay phone, no renderiza nada. */
+export function WhatsAppButton({
+  phone,
+  size = 6,
+  className,
+}: {
+  phone: string | null | undefined;
+  size?: number;
+  className?: string;
+}) {
+  const wa = toWhatsAppUrl(phone);
+  if (!wa) return null;
+  return (
+    <a
+      href={wa}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className={cn(
+        "inline-flex items-center justify-center rounded-full bg-[#25D366] text-white shadow-sm transition-transform hover:scale-110",
+        className,
+      )}
+      style={{ width: `${size * 4}px`, height: `${size * 4}px` }}
+      title={`WhatsApp ${phone}`}
+      aria-label="Abrir WhatsApp"
+    >
+      <WhatsAppIcon className="h-3 w-3" />
+    </a>
+  );
+}

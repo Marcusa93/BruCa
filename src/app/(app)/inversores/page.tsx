@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
 import { listInvestorsWithStats } from "@/lib/supabase/queries/investors";
 import { InvestorsFilters } from "@/components/filters/investors-filters";
+import { WhatsAppButton } from "@/components/ui/whatsapp-link";
 
 export const dynamic = "force-dynamic";
 
@@ -87,12 +88,15 @@ export default async function InversoresPage({
                     className="group transition-colors hover:bg-surface-2"
                   >
                     <td className="px-3 py-3 sm:px-5">
-                      <Link
-                        href={`/inversores/${inv.id}`}
-                        className="block font-semibold text-ink hover:text-brand-700"
-                      >
-                        {inv.full_name}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/inversores/${inv.id}`}
+                          className="font-semibold text-ink hover:text-brand-700"
+                        >
+                          {inv.full_name}
+                        </Link>
+                        <WhatsAppButton phone={inv.phone} size={5} />
+                      </div>
                       {inv.email && (
                         <div className="hidden text-xs text-ink-3 sm:block">
                           {inv.email}

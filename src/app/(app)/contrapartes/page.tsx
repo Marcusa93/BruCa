@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
 import { listCounterpartiesWithStats } from "@/lib/supabase/queries/counterparties";
 import { CounterpartiesFilters } from "@/components/filters/counterparties-filters";
+import { WhatsAppButton } from "@/components/ui/whatsapp-link";
 
 export const dynamic = "force-dynamic";
 
@@ -115,12 +116,15 @@ export default async function ContrapartesPage({
                         className="group transition-colors hover:bg-surface-2"
                       >
                         <td className="px-5 py-3">
-                          <Link
-                            href={`/contrapartes/${c.id}`}
-                            className="block font-semibold text-ink hover:text-brand-700"
-                          >
-                            {c.full_name}
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/contrapartes/${c.id}`}
+                              className="font-semibold text-ink hover:text-brand-700"
+                            >
+                              {c.full_name}
+                            </Link>
+                            <WhatsAppButton phone={c.phone} size={5} />
+                          </div>
                           {c.alias && (
                             <div className="text-xs text-ink-3">
                               alias “{c.alias}”
