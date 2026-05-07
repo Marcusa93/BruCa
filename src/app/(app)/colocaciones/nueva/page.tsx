@@ -5,13 +5,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OperationForm } from "@/components/forms/operation-form";
 import { listInvestments } from "@/lib/supabase/queries/investments";
+import { listCounterpartiesBasic } from "@/lib/supabase/queries/counterparties";
 
 export const dynamic = "force-dynamic";
 
 export default async function NuevaColocacionPage() {
-  const investments = await listInvestments();
+  const [investments, counterparties] = await Promise.all([
+    listInvestments(),
+    listCounterpartiesBasic(),
+  ]);
   const activeInvestments = investments
-    .filter((i) => ["active", "partially_placed", "fully_placed"].includes(i.status))
+    .filter((i) =>
+      ["active", "partially_placed", "fully_placed"].includes(i.status),
+    )
     .map((i) => ({
       id: i.id,
       label: `${i.investor_name} · ${i.amount.toLocaleString("es-AR", { style: "currency", currency: i.currency, maximumFractionDigits: 0 })}`,
@@ -33,7 +39,10 @@ export default async function NuevaColocacionPage() {
       />
       <Card className="max-w-3xl">
         <CardContent className="pt-6">
-          <OperationForm investments={activeInvestments} />
+          <OperationForm
+            investments={activeInvestments}
+            counterparties={counterparties}
+          />
         </CardContent>
       </Card>
     </>

@@ -21,11 +21,41 @@ async function notifySafe(payload: Parameters<typeof sendPushToAll>[0]) {
   }
 }
 
+/**
+ * Resuelve el counterparty_id a partir de:
+ * - un id explícito (string uuid)
+ * - un nombre de contraparte (busca por full_name case-insensitive; crea si no existe)
+ */
+async function resolveCounterpartyId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  opts: { id?: string | null; name?: string | null },
+): Promise<string | null> {
+  if (opts.id) return opts.id;
+  const name = (opts.name ?? "").trim();
+  if (!name) return null;
+  const { data: existing } = await supabase
+    .from("counterparties")
+    .select("id")
+    .ilike("full_name", name)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    return (existing[0] as { id: string }).id;
+  }
+  const { data: created, error } = await supabase
+    .from("counterparties")
+    .insert({ full_name: name })
+    .select("id")
+    .single();
+  if (error) return null;
+  return (created as { id: string }).id;
+}
+
 // =================================================================
 // Cheque
 // =================================================================
 const checkSchema = z.object({
   counterparty: z.string().min(1, "Contraparte requerida"),
+  counterparty_id: z.string().uuid().nullable().optional(),
   paid_amount: z.number().positive("Monto pagado > 0"),
   face_value: z.number().positive("VN > 0"),
   start_date: z.string().min(1),
@@ -41,6 +71,10 @@ export async function createCheckAction(formData: FormData) {
   const raw = Object.fromEntries(formData.entries());
   const parsed = checkSchema.safeParse({
     counterparty: raw.counterparty,
+    counterparty_id:
+      raw.counterparty_id && raw.counterparty_id !== ""
+        ? String(raw.counterparty_id)
+        : null,
     paid_amount: Number(raw.paid_amount),
     face_value: Number(raw.face_value),
     start_date: raw.start_date,
@@ -70,11 +104,16 @@ export async function createCheckAction(formData: FormData) {
   const monthly_rate = (expected_return / v.paid_amount) * (30 / days);
 
   const supabase = await createClient();
+  const counterpartyId = await resolveCounterpartyId(supabase, {
+    id: v.counterparty_id,
+    name: v.counterparty,
+  });
   const { data: op, error } = await supabase
     .from("operations")
     .insert({
       kind: "check_purchase",
       counterparty: v.counterparty,
+      counterparty_id: counterpartyId,
       currency: v.currency,
       amount: v.paid_amount,
       start_date: v.start_date,
@@ -131,6 +170,7 @@ const tradeSchema = z.object({
   unit_price: z.number().positive(),
   date: z.string().min(1),
   counterparty: z.string().nullable().optional(),
+  counterparty_id: z.string().uuid().nullable().optional(),
   notes: z.string().nullable().optional(),
   attribute_to_investment_id: z.string().uuid().nullable().optional(),
 });
@@ -145,6 +185,10 @@ export async function createTradeAction(formData: FormData) {
     unit_price: Number(raw.unit_price),
     date: raw.date,
     counterparty: raw.counterparty || null,
+    counterparty_id:
+      raw.counterparty_id && raw.counterparty_id !== ""
+        ? String(raw.counterparty_id)
+        : null,
     notes: raw.notes || null,
     attribute_to_investment_id:
       raw.attribute_to_investment_id && raw.attribute_to_investment_id !== ""
@@ -167,11 +211,18 @@ export async function createTradeAction(formData: FormData) {
         : "crypto_sell";
 
   const supabase = await createClient();
+  const counterpartyId = v.counterparty
+    ? await resolveCounterpartyId(supabase, {
+        id: v.counterparty_id,
+        name: v.counterparty,
+      })
+    : null;
   const { data: op, error } = await supabase
     .from("operations")
     .insert({
       kind: opKind,
       counterparty: v.counterparty,
+      counterparty_id: counterpartyId,
       currency: "ARS",
       amount: amountARS,
       start_date: v.date,

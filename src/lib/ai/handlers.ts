@@ -51,6 +51,8 @@ export async function runTool(name: ToolName, args: Args): Promise<ToolResult> {
         return await searchOperation(args);
       case "find_investor":
         return await findInvestor(String(args.name ?? ""));
+      case "list_counterparties":
+        return await listCounterpartiesTool(args);
       case "simulate_reinvestment":
         return runSimulateReinvestment(args);
 
@@ -245,6 +247,24 @@ async function findInvestor(name: string): Promise<ToolResult> {
     .limit(5);
   if (error) throw error;
   if (!data || data.length === 0) return noData(`No hay inversores que coincidan con "${name}".`);
+  return { ok: true, data };
+}
+
+async function listCounterpartiesTool(args: Args): Promise<ToolResult> {
+  const sb = createAdminClient();
+  let q = sb
+    .from("counterparties")
+    .select("id, full_name, alias, bank, risk_level, is_active, document_number")
+    .order("full_name", { ascending: true })
+    .limit(Number(args.limit ?? 20));
+  if (args.q) {
+    const search = String(args.q).trim();
+    q = q.or(`full_name.ilike.%${search}%,alias.ilike.%${search}%`);
+  }
+  if (args.risk && args.risk !== "all") q = q.eq("risk_level", String(args.risk));
+  const { data, error } = await q;
+  if (error) throw error;
+  if (!data || data.length === 0) return noData("No hay contrapartes que coincidan.");
   return { ok: true, data };
 }
 

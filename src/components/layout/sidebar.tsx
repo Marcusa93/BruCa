@@ -13,6 +13,7 @@ import {
   Coins,
   LogOut,
   X,
+  Handshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOutAction } from "@/lib/auth/actions";
@@ -31,6 +32,7 @@ const NAV: NavItem[] = [
   { href: "/vencimientos", label: "Vencimientos", icon: CalendarClock, group: "Operación" },
   { href: "/tesoreria", label: "Tesorería", icon: Coins, group: "Operación" },
   { href: "/inversores", label: "Inversores", icon: Users, group: "Cartera" },
+  { href: "/contrapartes", label: "Contrapartes", icon: Handshake, group: "Cartera" },
   { href: "/simulador", label: "Simulador", icon: Calculator, group: "Cartera" },
 ];
 

@@ -143,6 +143,24 @@ export const TOOLS = [
   {
     type: "function" as const,
     function: {
+      name: "list_counterparties",
+      description:
+        "Lista contrapartes (vendedores de cheques, contrapartes de FX/USDT) con métricas: total operado, pendiente de cobro, mora, riesgo, última operación. Usar para preguntas como 'a quién le compro más cheques', '¿cuánto le debo a Mosta?'.",
+      parameters: {
+        type: "object",
+        properties: {
+          q: { type: "string", description: "Búsqueda parcial por nombre / alias" },
+          risk: { type: "string", enum: ["low", "normal", "high", "all"] },
+          limit: { type: "integer", minimum: 1, maximum: 50 },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "simulate_reinvestment",
       description:
         "Proyecta la evolución de un capital reinvirtiendo intereses durante varios meses con tasa mensual lineal. NO consulta la base.",

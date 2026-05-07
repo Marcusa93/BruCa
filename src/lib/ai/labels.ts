@@ -52,6 +52,11 @@ export const TOOL_LABELS: Record<
     ok: "Inversor encontrado",
     empty: "Sin coincidencias",
   },
+  list_counterparties: {
+    running: "Listando contrapartes…",
+    ok: "Contrapartes",
+    empty: "Sin contrapartes",
+  },
   simulate_reinvestment: {
     running: "Calculando simulación…",
     ok: "Simulación de reinversión",

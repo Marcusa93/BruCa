@@ -18,10 +18,18 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ComponentType<{ classNam
   { id: "crypto", label: "USDT / Cripto", icon: Bitcoin },
 ];
 
+interface CounterpartyOption {
+  id: string;
+  full_name: string;
+  alias: string | null;
+}
+
 export function OperationForm({
   investments,
+  counterparties,
 }: {
   investments: Array<{ id: string; label: string }>;
+  counterparties: CounterpartyOption[];
 }) {
   const [tab, setTab] = useState<Tab>("check");
 
@@ -49,14 +57,66 @@ export function OperationForm({
         })}
       </div>
 
-      {tab === "check" && <CheckForm investments={investments} />}
-      {tab === "fx" && <TradeForm flavor="fx" investments={investments} />}
-      {tab === "crypto" && <TradeForm flavor="crypto" investments={investments} />}
+      {tab === "check" && (
+        <CheckForm investments={investments} counterparties={counterparties} />
+      )}
+      {tab === "fx" && (
+        <TradeForm flavor="fx" investments={investments} counterparties={counterparties} />
+      )}
+      {tab === "crypto" && (
+        <TradeForm flavor="crypto" investments={investments} counterparties={counterparties} />
+      )}
     </div>
   );
 }
 
-function CheckForm({ investments }: { investments: Array<{ id: string; label: string }> }) {
+function CounterpartyField({
+  counterparties,
+  className,
+}: {
+  counterparties: CounterpartyOption[];
+  className?: string;
+}) {
+  const [name, setName] = useState("");
+  const matched = counterparties.find(
+    (c) => c.full_name.toLowerCase() === name.trim().toLowerCase(),
+  );
+  return (
+    <Field label="Contraparte" required className={className}>
+      <input
+        type="text"
+        name="counterparty"
+        list="counterparty-list"
+        required
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Empezá a tipear o elegí de la lista"
+        className="h-9 w-full rounded-md border border-border bg-surface px-3 text-sm text-ink outline-none transition-colors focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+      />
+      <datalist id="counterparty-list">
+        {counterparties.map((c) => (
+          <option key={c.id} value={c.full_name}>
+            {c.alias ? `(${c.alias})` : ""}
+          </option>
+        ))}
+      </datalist>
+      <input type="hidden" name="counterparty_id" value={matched?.id ?? ""} />
+      {!matched && name.trim().length > 0 && (
+        <div className="mt-1 text-[10px] text-ink-3">
+          Si no existe, se crea automáticamente como contraparte nueva.
+        </div>
+      )}
+    </Field>
+  );
+}
+
+function CheckForm({
+  investments,
+  counterparties,
+}: {
+  investments: Array<{ id: string; label: string }>;
+  counterparties: CounterpartyOption[];
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -90,9 +150,7 @@ function CheckForm({ investments }: { investments: Array<{ id: string; label: st
       }}
       className="grid grid-cols-1 gap-4 sm:grid-cols-2"
     >
-      <Field label="Contraparte" required className="sm:col-span-2">
-        <Input name="counterparty" required placeholder="Ej: Mosta Padilla" />
-      </Field>
+      <CounterpartyField counterparties={counterparties} className="sm:col-span-2" />
       <Field label="Monto pagado" required>
         <Input
           name="paid_amount"
@@ -198,9 +256,11 @@ function CheckForm({ investments }: { investments: Array<{ id: string; label: st
 function TradeForm({
   flavor,
   investments,
+  counterparties,
 }: {
   flavor: "fx" | "crypto";
   investments: Array<{ id: string; label: string }>;
+  counterparties: CounterpartyOption[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -296,9 +356,7 @@ function TradeForm({
         />
       </Field>
 
-      <Field label="Contraparte">
-        <Input name="counterparty" placeholder="Ej: Juan Pérez" />
-      </Field>
+      <CounterpartyField counterparties={counterparties} />
 
       <Field label="Fecha" required>
         <Input name="date" type="date" required defaultValue={today} />
