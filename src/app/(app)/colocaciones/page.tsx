@@ -5,19 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlacementStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
+import {
+  operationKindLabel,
+  operationKindTint,
+  type OperationKind,
+} from "@/lib/finance/labels";
 import { listOperations } from "@/lib/supabase/queries/operations";
 import { OperationsFilters } from "@/components/filters/operations-filters";
 
 export const dynamic = "force-dynamic";
-
-const KIND_META: Record<string, { label: string; tint: string }> = {
-  check_purchase: { label: "Cheque", tint: "bg-brand-50 text-brand-800" },
-  fx_buy: { label: "Compra USD", tint: "bg-info-bg text-info" },
-  fx_sell: { label: "Venta USD", tint: "bg-success-bg text-success" },
-  crypto_buy: { label: "Compra USDT", tint: "bg-info-bg text-info" },
-  crypto_sell: { label: "Venta USDT", tint: "bg-success-bg text-success" },
-  other: { label: "Otro", tint: "bg-surface-2 text-ink-2" },
-};
 
 export default async function ColocacionesPage({
   searchParams,
@@ -104,7 +100,9 @@ export default async function ColocacionesPage({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filtered.map((o) => {
-                    const meta = KIND_META[o.kind] ?? KIND_META.other;
+                    const kind = o.kind as OperationKind;
+                    const label = operationKindLabel[kind] ?? operationKindLabel.other;
+                    const tint = operationKindTint[kind] ?? operationKindTint.other;
                     let detail = "—";
                     if (o.kind === "check_purchase" && o.expected_total) {
                       detail = `VN ${fmtMoney(Number(o.expected_total), o.currency)}`;
@@ -122,9 +120,9 @@ export default async function ColocacionesPage({
                             className="block"
                           >
                             <span
-                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.tint}`}
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${tint}`}
                             >
-                              {meta.label}
+                              {label}
                             </span>
                           </Link>
                         </td>

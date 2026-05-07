@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/kpi/kpi-card";
-import { PlacementStatusBadge } from "@/components/ui/status-badge";
+import { InvestmentStatusBadge, PlacementStatusBadge } from "@/components/ui/status-badge";
 import { PhoneWithWhatsApp } from "@/components/ui/whatsapp-link";
 import {
   fmtMoney,
@@ -14,6 +14,8 @@ import {
   fmtDate,
   type Currency,
 } from "@/lib/finance/formatters";
+import { kindLabel } from "@/lib/finance/labels";
+import type { InvestmentStatus } from "@/lib/finance/status";
 import { getInvestorDetail } from "@/lib/supabase/queries/investors";
 
 export const dynamic = "force-dynamic";
@@ -48,15 +50,6 @@ interface LinkRow {
   operation_id: string;
   allocated_amount: number;
 }
-
-const KIND_LABEL: Record<string, string> = {
-  check_purchase: "Cheque",
-  fx_buy: "Compra USD",
-  fx_sell: "Venta USD",
-  crypto_buy: "Compra USDT",
-  crypto_sell: "Venta USDT",
-  other: "Otro",
-};
 
 export default async function InvestorDetailPage({
   params,
@@ -220,9 +213,7 @@ export default async function InvestorDetailPage({
                         )}
                       </td>
                       <td className="px-5 py-2.5">
-                        <span className="rounded-full border border-border bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-2">
-                          {i.status}
-                        </span>
+                        <InvestmentStatusBadge status={i.status as InvestmentStatus} />
                       </td>
                     </tr>
                   ))}
@@ -262,7 +253,7 @@ export default async function InvestorDetailPage({
                     return (
                       <tr key={o.id}>
                         <td className="px-5 py-2.5 text-ink-2">
-                          {KIND_LABEL[o.kind] ?? o.kind}
+                          {kindLabel(o.kind)}
                         </td>
                         <td className="px-5 py-2.5 text-ink">
                           {o.counterparty ?? "—"}

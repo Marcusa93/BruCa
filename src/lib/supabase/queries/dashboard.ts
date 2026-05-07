@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Currency } from "@/lib/finance/formatters";
+import { kindLabel } from "@/lib/finance/labels";
 import type { PlacementStatus } from "@/lib/finance/status";
 
 export interface DashboardKpis {
@@ -28,15 +29,6 @@ export interface CommitmentRow {
   amount: number;
   currency: Currency;
 }
-
-const KIND_LABEL: Record<string, string> = {
-  check_purchase: "Cheque",
-  fx_buy: "Compra USD",
-  fx_sell: "Venta USD",
-  crypto_buy: "Compra USDT",
-  crypto_sell: "Venta USDT",
-  other: "Otro",
-};
 
 export async function getDashboardData() {
   const sb = await createClient();
@@ -131,7 +123,7 @@ export async function getDashboardData() {
     .map((o) => ({
       id: o.id,
       counterparty: o.counterparty ?? "—",
-      type: KIND_LABEL[o.kind] ?? o.kind,
+      type: kindLabel(o.kind),
       amount: o.kind === "check_purchase" ? Number(o.expected_total ?? o.amount) : Number(o.amount),
       currency: o.currency,
       dueDate: o.due_date as string,

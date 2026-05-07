@@ -5,20 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
+import { riskVisual } from "@/lib/finance/labels";
 import { listCounterpartiesWithStats } from "@/lib/supabase/queries/counterparties";
 import { CounterpartiesFilters } from "@/components/filters/counterparties-filters";
 import { WhatsAppButton } from "@/components/ui/whatsapp-link";
 
 export const dynamic = "force-dynamic";
-
-const RISK_TONE: Record<
-  "low" | "normal" | "high",
-  { label: string; tone: "success" | "neutral" | "danger" }
-> = {
-  low: { label: "Bajo", tone: "success" },
-  normal: { label: "Normal", tone: "neutral" },
-  high: { label: "Alto", tone: "danger" },
-};
 
 export default async function ContrapartesPage({
   searchParams,
@@ -109,7 +101,7 @@ export default async function ContrapartesPage({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filtered.map((c) => {
-                    const risk = RISK_TONE[c.risk_level];
+                    const risk = riskVisual[c.risk_level];
                     return (
                       <tr
                         key={c.id}

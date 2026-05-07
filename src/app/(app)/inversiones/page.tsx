@@ -3,23 +3,13 @@ import { Plus, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { InvestmentStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtPercent, fmtDate } from "@/lib/finance/formatters";
+import type { InvestmentStatus } from "@/lib/finance/status";
 import { listInvestments, listInvestorsBasic } from "@/lib/supabase/queries/investments";
 import { InvestmentsFilters } from "@/components/filters/investments-filters";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL: Record<
-  string,
-  { label: string; tone: "success" | "info" | "warning" | "danger" | "neutral" | "brand" }
-> = {
-  active: { label: "Activa", tone: "info" },
-  partially_placed: { label: "Colocada parcial", tone: "info" },
-  fully_placed: { label: "Colocada", tone: "info" },
-  returned: { label: "Devuelta", tone: "success" },
-  cancelled: { label: "Cancelada", tone: "neutral" },
-};
 
 export default async function InversionesPage({
   searchParams,
@@ -110,8 +100,6 @@ export default async function InversionesPage({
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((i) => {
-                  const status =
-                    STATUS_LABEL[i.status] ?? { label: i.status, tone: "neutral" as const };
                   return (
                     <tr key={i.id} className="transition-colors hover:bg-surface-2">
                       <td className="px-5 py-3">
@@ -145,9 +133,7 @@ export default async function InversionesPage({
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        <Badge tone={status.tone} dot>
-                          {status.label}
-                        </Badge>
+                        <InvestmentStatusBadge status={i.status as InvestmentStatus} />
                       </td>
                       <td className="px-5 py-3 text-right">
                         <Link

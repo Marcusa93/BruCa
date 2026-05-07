@@ -18,20 +18,12 @@ import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/kpi/kpi-card";
 import { PlacementStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtDate, fmtPercent, type Currency } from "@/lib/finance/formatters";
+import { kindLabel } from "@/lib/finance/labels";
 import type { PlacementStatus } from "@/lib/finance/status";
 import { getCounterpartyDetail } from "@/lib/supabase/queries/counterparties";
 import { PhoneWithWhatsApp } from "@/components/ui/whatsapp-link";
 
 export const dynamic = "force-dynamic";
-
-const KIND_LABEL: Record<string, string> = {
-  check_purchase: "Cheque",
-  fx_buy: "Compra USD",
-  fx_sell: "Venta USD",
-  crypto_buy: "Compra USDT",
-  crypto_sell: "Venta USDT",
-  other: "Otro",
-};
 
 const RISK_META: Record<
   "low" | "normal" | "high",
@@ -203,7 +195,7 @@ export default async function ContraparteDetailPage({
                           href={`/colocaciones/${o.id}`}
                           className="font-medium text-ink hover:text-brand-700"
                         >
-                          {KIND_LABEL[o.kind] ?? o.kind}
+                          {kindLabel(o.kind)}
                         </Link>
                       </td>
                       <td className="tabular px-5 py-2.5 text-right text-ink">

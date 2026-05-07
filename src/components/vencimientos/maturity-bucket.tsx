@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fmtMoney, fmtDate, type Currency } from "@/lib/finance/formatters";
+import { kindLabel } from "@/lib/finance/labels";
 import { setOperationStatusAction } from "@/lib/actions/operations";
 import { cn } from "@/lib/utils";
 
@@ -26,15 +27,6 @@ export interface BucketItem {
   due_date: string;
   status: string;
 }
-
-const KIND_LABEL: Record<string, string> = {
-  check_purchase: "Cheque",
-  fx_buy: "Compra USD",
-  fx_sell: "Venta USD",
-  crypto_buy: "Compra USDT",
-  crypto_sell: "Venta USDT",
-  other: "Otro",
-};
 
 export function MaturityBucket({
   title,
@@ -108,7 +100,7 @@ function Row({ item }: { item: BucketItem }) {
           {item.counterparty ?? "—"}
         </Link>
         <div className="text-xs text-ink-3">
-          {KIND_LABEL[item.kind] ?? item.kind}
+          {kindLabel(item.kind)}
         </div>
       </div>
       <div className="tabular col-span-6 text-sm font-semibold text-ink sm:col-span-3">

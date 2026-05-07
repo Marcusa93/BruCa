@@ -6,21 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlacementStatusBadge } from "@/components/ui/status-badge";
 import { fmtMoney, fmtPercent, fmtDate, type Currency } from "@/lib/finance/formatters";
+import { kindLabel } from "@/lib/finance/labels";
 import type { PlacementStatus } from "@/lib/finance/status";
 import { createClient } from "@/lib/supabase/server";
 import { OperationActions } from "@/components/operations/operation-actions";
 import { DeleteClient } from "@/components/operations/delete-client";
 
 export const dynamic = "force-dynamic";
-
-const KIND_LABEL: Record<string, string> = {
-  check_purchase: "Cheque",
-  fx_buy: "Compra USD",
-  fx_sell: "Venta USD",
-  crypto_buy: "Compra USDT",
-  crypto_sell: "Venta USDT",
-  other: "Otro",
-};
 
 interface OperationFull {
   id: string;
@@ -77,8 +69,8 @@ export default async function OperationDetailPage({
   return (
     <>
       <PageHeader
-        title={op.counterparty ?? KIND_LABEL[op.kind]}
-        subtitle={`${KIND_LABEL[op.kind] ?? op.kind} · ${fmtDate(op.start_date)}${op.due_date ? ` → ${fmtDate(op.due_date)}` : ""}`}
+        title={op.counterparty ?? kindLabel(op.kind)}
+        subtitle={`${kindLabel(op.kind)} · ${fmtDate(op.start_date)}${op.due_date ? ` → ${fmtDate(op.due_date)}` : ""}`}
         actions={
           <>
             <Button variant="ghost" asChild size="sm">
@@ -110,7 +102,7 @@ export default async function OperationDetailPage({
             <PlacementStatusBadge status={op.status} />
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <Row label="Tipo">{KIND_LABEL[op.kind] ?? op.kind}</Row>
+            <Row label="Tipo">{kindLabel(op.kind)}</Row>
             <Row label="Contraparte">{op.counterparty ?? "—"}</Row>
             <Row label="Monto operado">
               <span className="tabular font-semibold text-ink">
