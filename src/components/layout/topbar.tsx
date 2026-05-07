@@ -1,7 +1,7 @@
 "use client";
 
-import { Search, Command, Bell, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, Command, Menu } from "lucide-react";
+import { PushToggle } from "@/components/push/push-toggle";
 
 interface TopbarProps {
   onMenu?: () => void;
@@ -39,9 +39,7 @@ export function Topbar({ onMenu }: TopbarProps) {
           </button>
           <button className="px-2.5 py-1 text-ink-3 hover:text-ink">USD</button>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Notificaciones">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <PushToggle />
       </div>
     </header>
   );

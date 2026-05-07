@@ -5,6 +5,22 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { expectedTotal } from "@/lib/finance/calculations";
+import { sendPushToAll } from "@/lib/push/server";
+
+const fmtARS = (n: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(n);
+
+async function notifySafe(payload: Parameters<typeof sendPushToAll>[0]) {
+  try {
+    await sendPushToAll(payload);
+  } catch (e) {
+    console.warn("[push] no pude enviar:", (e as Error).message);
+  }
+}
 
 const investmentSchema = z.object({
   investor_id: z.string().uuid("Inversor requerido"),
@@ -36,6 +52,11 @@ export async function createInvestmentAction(formData: FormData) {
   dueDate.setDate(dueDate.getDate() + v.estimated_term_days);
 
   const supabase = await createClient();
+  const { data: investorData } = await supabase
+    .from("investors")
+    .select("full_name")
+    .eq("id", v.investor_id)
+    .single();
   const { error } = await supabase.from("investments").insert({
     ...v,
     committed_return_amount: committed,
@@ -43,6 +64,12 @@ export async function createInvestmentAction(formData: FormData) {
     status: "active",
   });
   if (error) return { error: error.message };
+  await notifySafe({
+    kind: "investment_created",
+    title: `Nueva inversión: ${(investorData as { full_name?: string } | null)?.full_name ?? "—"}`,
+    body: `${fmtARS(v.amount)} ${v.currency} a ${(v.monthly_rate * 100).toFixed(2)}% por ${v.estimated_term_days} días`,
+    url: "/inversiones",
+  });
   revalidatePath("/inversiones");
   revalidatePath("/dashboard");
   revalidatePath("/inversores");

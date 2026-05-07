@@ -4,6 +4,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { sendPushToAll } from "@/lib/push/server";
+
+const fmtARS = (n: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(n);
+
+async function notifySafe(payload: Parameters<typeof sendPushToAll>[0]) {
+  try {
+    await sendPushToAll(payload);
+  } catch (e) {
+    console.warn("[push] no pude enviar:", (e as Error).message);
+  }
+}
 
 // =================================================================
 // Cheque
@@ -91,6 +107,13 @@ export async function createCheckAction(formData: FormData) {
     });
   }
 
+  await notifySafe({
+    kind: "operation_created",
+    title: `Cheque cargado: ${v.counterparty}`,
+    body: `${fmtARS(v.paid_amount)} → VN ${fmtARS(v.face_value)} · vence ${v.due_date}`,
+    url: `/colocaciones/${op.id}`,
+  });
+
   revalidatePath("/colocaciones");
   revalidatePath("/vencimientos");
   revalidatePath("/dashboard");
@@ -176,6 +199,14 @@ export async function createTradeAction(formData: FormData) {
     });
   }
 
+  const sideLabel = v.side === "buy" ? "Compra" : "Venta";
+  await notifySafe({
+    kind: "operation_created",
+    title: `${sideLabel} de ${v.asset.toUpperCase()} ${v.flavor === "crypto" ? "(USDT)" : ""}`,
+    body: `${v.units.toLocaleString("es-AR")} unidades × ${v.unit_price} = ${fmtARS(amountARS)}`,
+    url: `/colocaciones/${op.id}`,
+  });
+
   revalidatePath("/colocaciones");
   revalidatePath("/dashboard");
   redirect("/colocaciones");
@@ -194,11 +225,57 @@ export async function setOperationStatusAction(
   if (actualReturn != null) {
     update.actual_return = actualReturn;
   }
+
+  // Buscar la operación antes para construir el mensaje de notificación
+  const { data: opPrevRaw } = await supabase
+    .from("operations")
+    .select("counterparty, currency, amount, expected_total, expected_return, kind")
+    .eq("id", operationId)
+    .single();
+  type Prev = {
+    counterparty: string | null;
+    currency: string;
+    amount: number;
+    expected_total: number | null;
+    expected_return: number | null;
+    kind: string;
+  };
+  const prev = opPrevRaw as unknown as Prev | null;
+
   const { error } = await supabase.from("operations").update(update).eq("id", operationId);
   if (error) return { error: error.message };
+
+  if (prev) {
+    if (newStatus === "collected") {
+      const total = Number(prev.expected_total ?? prev.amount);
+      const ret = actualReturn ?? Number(prev.expected_return ?? 0);
+      const expected = Number(prev.expected_return ?? 0);
+      const deviation = expected > 0 ? (ret - expected) / expected : 0;
+      await notifySafe({
+        kind: "operation_collected",
+        title: `✅ Cobrada: ${prev.counterparty ?? "—"}`,
+        body: `${fmtARS(total)} · rendimiento ${fmtARS(ret)}${
+          Math.abs(deviation) > 0.05
+            ? ` (desvío ${(deviation * 100).toFixed(1)}%)`
+            : ""
+        }`,
+        url: `/colocaciones/${operationId}`,
+      });
+    } else if (newStatus === "in_default") {
+      await notifySafe({
+        kind: "operation_in_default",
+        title: `🚨 En mora: ${prev.counterparty ?? "—"}`,
+        body: `${fmtARS(Number(prev.amount))} marcada como mora`,
+        url: `/colocaciones/${operationId}`,
+        requireInteraction: true,
+      });
+    }
+  }
+
   revalidatePath("/vencimientos");
   revalidatePath("/colocaciones");
   revalidatePath("/dashboard");
+  revalidatePath(`/colocaciones/${operationId}`);
   return { ok: true };
 }
 

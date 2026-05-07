@@ -1,0 +1,40 @@
+{
+  "name": "BruCa Inversiones + IA",
+  "short_name": "BruCa",
+  "description": "Sistema financiero interno de BruCa — inversiones, colocaciones y tesorería con asistente IA.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fcfcfd",
+  "theme_color": "#1a7a4d",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Vencimientos",
+      "url": "/vencimientos",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nueva colocación",
+      "url": "/colocaciones/nueva",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -3,6 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { sendPushToAll } from "@/lib/push/server";
+
+async function notifySafe(payload: Parameters<typeof sendPushToAll>[0]) {
+  try {
+    await sendPushToAll(payload);
+  } catch (e) {
+    console.warn("[push] no pude enviar:", (e as Error).message);
+  }
+}
 
 const investorSchema = z.object({
   full_name: z.string().min(1, "Nombre requerido"),
@@ -29,6 +38,14 @@ export async function createInvestorAction(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.from("investors").insert(parsed.data);
   if (error) return { error: error.message };
+  await notifySafe({
+    kind: "investor_created",
+    title: `Nuevo inversor: ${parsed.data.full_name}`,
+    body: parsed.data.email
+      ? `Contacto: ${parsed.data.email}`
+      : "Cargado en el sistema",
+    url: "/inversores",
+  });
   revalidatePath("/inversores");
   revalidatePath("/dashboard");
   return { ok: true };

@@ -1,6 +1,15 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { simulateReinvestment } from "@/lib/finance/simulations";
+import { sendPushToAll } from "@/lib/push/server";
 import type { ToolName } from "./tools";
+
+async function notifyAI(title: string, body: string, url = "/dashboard") {
+  try {
+    await sendPushToAll({ kind: "ai_action", title: `Cafe+IA · ${title}`, body, url });
+  } catch (e) {
+    console.warn("[push:ai] error:", (e as Error).message);
+  }
+}
 
 type Args = Record<string, unknown>;
 
@@ -280,6 +289,7 @@ async function createInvestor(args: Args): Promise<ToolResult> {
   if (!payload.full_name) return { ok: false, error: "Falta el nombre del inversor." };
   const { data, error } = await sb.from("investors").insert(payload).select().single();
   if (error) throw error;
+  await notifyAI("Inversor cargado", payload.full_name, "/inversores");
   return { ok: true, data };
 }
 
@@ -340,6 +350,16 @@ async function createInvestment(args: Args): Promise<ToolResult> {
   };
   const { data, error } = await sb.from("investments").insert(payload).select().single();
   if (error) throw error;
+  const { data: investorRow } = await sb
+    .from("investors")
+    .select("full_name")
+    .eq("id", investor_id)
+    .single();
+  await notifyAI(
+    "Inversión cargada",
+    `${(investorRow as { full_name?: string } | null)?.full_name ?? "—"} · ${amount.toLocaleString("es-AR")} ${currency}`,
+    "/inversiones",
+  );
   return { ok: true, data };
 }
 
@@ -407,6 +427,12 @@ async function createCheckPurchase(args: Args): Promise<ToolResult> {
     }
   }
 
+  await notifyAI(
+    "Cheque cargado",
+    `${counterparty} · pagado ${paid.toLocaleString("es-AR")} · VN ${face.toLocaleString("es-AR")}`,
+    `/colocaciones/${op.id}`,
+  );
+
   return { ok: true, data: op };
 }
 
@@ -471,6 +497,14 @@ async function createTrade(kind: "fx" | "crypto", args: Args): Promise<ToolResul
       }
     }
   }
+
+  const sideLabel = side === "buy" ? "Compra" : "Venta";
+  const flavor = kind === "crypto" ? "USDT" : "USD";
+  await notifyAI(
+    `${sideLabel} de ${flavor}`,
+    `${units.toLocaleString("es-AR")} ${asset} × ${unit_price} = ${amountARS.toLocaleString("es-AR")} ARS`,
+    `/colocaciones/${op.id}`,
+  );
 
   return { ok: true, data: op };
 }
